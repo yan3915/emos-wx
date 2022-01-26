@@ -5,7 +5,7 @@
       select IF(COUNT(*),TRUE,FALSE) FROM tb_user where root=1
    </select>
 
-    <select id="searchIdOpenId" parameterType="String" resultType="java.lang.Integer" >
+    <select id="searchIdOpenId" parameterType="String"  resultType="java.lang.Integer" >
         select id from tb_user where open_id =#{openId} AND status =1
     </select>
     <select id="searchUserPermissions" parameterType="int" resultType="string">
@@ -16,7 +16,13 @@
         WHERE u.id =#{userId} AND u.status=1;
     </select>
 
-    <select id="searchIdByOpenId" parameterType="string" resultType="Integer">
+    <select id="searchById" parameterType="int" resultType="com.example.emos.wx.api.db.pojo.TbUser">
+      select
+           id ,open_id, nickname, photo, name, sex,tel, email, hiredate,role,root, dept_id,status, create_time
+           from tb_user where id=#{userId} and status=1
+    </select>
+
+    <select id="searchIdByOpenId" parameterType="string" resultType="java.lang.Integer">
         SELECT  id from tb_user where open_id =#{openId} AND status =1
     </select>
 

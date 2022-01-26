@@ -1,6 +1,5 @@
 package com.example.emos.wx.api.db.dao;
 
-import com.example.emos.wx.api.db.pojo.TbDept;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

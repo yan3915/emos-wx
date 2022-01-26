@@ -12,4 +12,7 @@ public interface UserService {
     public TbUser searchById(int userId);
 
     public  Integer login(String code);
+
+
+
 }

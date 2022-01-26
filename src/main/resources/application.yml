@@ -68,6 +68,9 @@ emos:
     expire: 5
 
     cache-expire: 10
+  face:
+    createFaceModelUrl: http://124.223.43.142:3000/create_face_model
+    checkinUrl: http://124.223.43.142:3000/checkin
 wx:
   app-id: wx6ebffacadb3a1089
   app-secret: 4895ac3a056d4ec1af9e915d819e139d

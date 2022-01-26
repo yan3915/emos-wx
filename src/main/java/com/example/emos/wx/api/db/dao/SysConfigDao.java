@@ -7,5 +7,5 @@ import java.util.List;
 
 @Mapper
 public interface SysConfigDao {
-    public List<SysConfig> selectAllParam();
+   public List<SysConfig> selectAllParam();
 }

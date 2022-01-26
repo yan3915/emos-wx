@@ -93,7 +93,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public TbUser searchById(int userId) {
-        return null;
+        TbUser user = userDao.searchById(userId);
+        return user;
     }
 
     @Override
