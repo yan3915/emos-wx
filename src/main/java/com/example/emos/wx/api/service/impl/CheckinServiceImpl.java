@@ -3,25 +3,32 @@ package com.example.emos.wx.api.service.impl;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
 import com.example.emos.wx.api.EmosException.EmosException;
 import com.example.emos.wx.api.config.SystemConstants;
-import com.example.emos.wx.api.db.dao.TbCheckinDao;
-import com.example.emos.wx.api.db.dao.TbFaceModelDao;
-import com.example.emos.wx.api.db.dao.TbHolidaysDao;
-import com.example.emos.wx.api.db.dao.TbWorkdayDao;
+import com.example.emos.wx.api.db.dao.*;
 import com.example.emos.wx.api.db.pojo.TbCheckin;
+import com.example.emos.wx.api.db.pojo.TbFaceModel;
 import com.example.emos.wx.api.service.CheckinService;
 
+import com.example.emos.wx.api.task.EmailTask;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.message.SimpleMessage;
+import org.jsoup.Jsoup;
 import org.jsoup.helper.DataUtil;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -45,11 +52,31 @@ public class CheckinServiceImpl implements CheckinService {
     @Autowired
     private TbFaceModelDao tbFaceModelDao;
 
+    @Autowired
+    private TbCityDao tbCityDao;
+
+    @Autowired
+    private EmailTask emailTask;
+
+    @Autowired
+    private TbUserDao userDao;
+
     @Value("${emos.face.createFaceModelUrl}")
     private String createFaceModelUrl;
 
     @Value("${emos.face.checkinUrl}")
     private String checkinUrl;
+
+    @Value("${emos.email.hr}")
+    private String hrEmail;
+
+
+
+   //@Value("${emos.face.createFaceModelUrl}")
+   // private String createFaceModelUrl;
+
+   // @Value("${emos.face.checkinUrl}")
+   // private String checkinUrl;
 
     @Override
     public String validCanCheckIn(int userId, String date) {
@@ -91,7 +118,7 @@ public class CheckinServiceImpl implements CheckinService {
     }
 
     @Override
-    public String checkin(HashMap param) {
+    public void checkin(HashMap param) {
 
         //区时间 判断是否迟到
         Date d1 = DateUtil.date();
@@ -126,9 +153,72 @@ public class CheckinServiceImpl implements CheckinService {
                 throw new EmosException("签到无效，非本人签到");
             }
             else if ("True".equals(body)){
-                // todo 查询疫情风险等级
-                // todo 保存签到记录
+                int risk = 1; //默认是低风险
+                String address =  (String)param.get("address");
+                String country =  (String) param.get("country");
+                String province = (String) param.get("province");
+                //查询城市简称
+                String city = (String) param.get("city");
+                String district = (String) param.get("district");
+                if(!StrUtil.isBlank(city) && !StrUtil.isBlank(district)){
+                   String code = tbCityDao.searchCode(city);
+                   try {
+                       String url = "http://m." + code + ".bendibao.com/news/yqdengji/?qu=" +district;
+                    Document document = Jsoup.connect(url).get();
+                    Elements elements= document.getElementsByClass("list-context");
+                    if(elements.size()>0){
+                       Element element =  elements.get(0);
+                       String result = element.select("p:last-child").text();
+                       if("高风险".equals(result)){
+                          risk = 3;
+                          //Todo 发送报警邮件
+                          HashMap<String,String> map = userDao.searchNameAndDept(userId);
+                          String name = map.get("name");
+                          String deptName = map.get("dept_name");
+                          deptName = deptName!= null?deptName:"";
+                           SimpleMailMessage message = new SimpleMailMessage();
+                           message.setTo(hrEmail);
+                           message.setText(deptName +"员工" +name +"," + DateUtil.format(new Date(),"yyyy年MM月dd日")+ "处于" + address + ",属于新冠疫情高风险地区，请及时与该员工联系，核实情况");
+                       }
+                       else if("中风险".equals(result)){
+                           risk = 2;
+                       }
+
+                    }
+                   }catch (Exception e){
+                       throw new EmosException("获取疫情风险等级失败");
+                   }
+                }
+                //TODO 保存签到的记录
+                TbCheckin entity = new TbCheckin();
+                entity.setUserId(userId);
+                entity.setAddress(address);
+                entity.setCountry(country);
+                entity.setProvince(province);
+                entity.setCity(city);
+                entity.setDistrict(district);
+                entity.setStatus((byte) status);
+                entity.setDate(DateUtil.today());
+                entity.setCreateTime(d1);
+                tbCheckinDao.insert(entity);
             }
         }
+    }
+
+    @Override
+    public void createFaceModel(int userId, String path) {
+      HttpRequest request =  HttpUtil.createPost(createFaceModelUrl);
+      request.form("photo", FileUtil.file(path));
+      HttpResponse response = request.execute();
+      String body = response.body();
+      if("无法识别出人脸".equals(body) || "照片中存在多张人脸".equals(body)){
+          throw new EmosException(body);
+      }
+      else {
+          TbFaceModel entity = new TbFaceModel();
+          entity.setUserId(userId);
+          entity.setFaceModel(body);
+          tbFaceModelDao.insert(entity);
+      }
     }
 }

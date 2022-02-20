@@ -19,8 +19,8 @@ public class EmailTask implements Serializable {
 
     @Async
     public void sendAsync(SimpleMailMessage message){
-        message.setFrom(mailbox);
-//        message.setCc(mailbox);
+        message.setFrom(mailbox);//设置邮件权限
+        message.setCc(mailbox);
         javaMailSender.send(message);
     }
 }

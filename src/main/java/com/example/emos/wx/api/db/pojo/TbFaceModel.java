@@ -14,25 +14,10 @@ public class TbFaceModel implements Serializable {
      */
     private Integer id;
 
-    /**
-     * 参数名
-     */
-    private String paramKey;
+    //用户
+    private Integer userId;
 
-    /**
-     * 参数值
-     */
-    private String paramValue;
-
-    /**
-     * 状态
-     */
-    private Boolean status;
-
-    /**
-     * 备注
-     */
-    private String remark;
+    private String faceModel;
 
     private static final long serialVersionUID = 1L;
 }

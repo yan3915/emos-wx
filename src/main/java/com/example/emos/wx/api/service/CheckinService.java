@@ -6,5 +6,7 @@ public interface CheckinService {
 
     public String validCanCheckIn(int userId,String date);
 
-    public String checkin(HashMap param);
+    public void checkin(HashMap param);
+
+    public void createFaceModel(int userId, String path);
 }
